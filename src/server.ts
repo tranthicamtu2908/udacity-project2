@@ -1,3 +1,4 @@
+// @ts-check
 import express from 'express';
 import bodyParser from 'body-parser';
 import { filterImageFromURL, deleteLocalFiles } from './util/util';
@@ -33,24 +34,28 @@ import { filterImageFromURL, deleteLocalFiles } from './util/util';
 
   // Root Endpoint
   // Displays a simple message to the user
-  app.get("/", async (req, res) => {
+  app.get("/", function (req: express.Request, res: express.Response) {
     res.send("try GET /filteredimage?image_url={{}}")
   });
 
-  app.get("/filteredimage", async (req, res) => {
-    if (!req.query.image_url) {
-      return res.status(400).json({ status: 400, message: "image_url must be present" })
-    }
-
-    var path = await filterImageFromURL(req.query.image_url);
-    res.sendFile(path);
-    res.on('finish', async function () {
-      try {
-        await deleteLocalFiles(path);
-      } catch (e) {
-        console.log("error removing ", path);
+  app.get("/filteredimage", async function (req: express.Request, res: express.Response) {
+    try {
+      if (!req.query.image_url) {
+        return res.status(400).json({ status: 400, message: "image_url must be present" })
       }
-    });
+
+      var path: string = await filterImageFromURL(req.query.image_url);
+      res.sendFile(path);
+      res.on('finish', async function () {
+        try {
+          await deleteLocalFiles(path);
+        } catch {
+          console.log("error removing ", path);
+        }
+      });
+    } catch (error) {
+      return res.status(500).json({ status: 500, message: (error as Error).message })
+    }
   });
 
   // Start the Server
